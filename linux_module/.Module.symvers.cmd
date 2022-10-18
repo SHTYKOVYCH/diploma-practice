@@ -1,0 +1,1 @@
+cmd_/home/dimitis/projects/program_experiments/linux/linux_module/Module.symvers := sed 's/\.ko$$/\.o/' /home/dimitis/projects/program_experiments/linux/linux_module/modules.order | scripts/mod/modpost -m -a  -o /home/dimitis/projects/program_experiments/linux/linux_module/Module.symvers -e -i Module.symvers   -T -
