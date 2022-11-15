@@ -1,0 +1,1 @@
+cmd_/home/dimitis/Yandex.Disk/labs/diploma-practice/lab2/modules.order := {   echo /home/dimitis/Yandex.Disk/labs/diploma-practice/lab2/lab2.ko; :; } | awk '!x[$$0]++' - > /home/dimitis/Yandex.Disk/labs/diploma-practice/lab2/modules.order

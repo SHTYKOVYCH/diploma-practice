@@ -1,0 +1,1 @@
+cmd_/home/dimitis/Yandex.Disk/labs/diploma-practice/lab2/lab2.ko := ld -r -m elf_x86_64 --build-id=sha1  -T scripts/module.lds -o /home/dimitis/Yandex.Disk/labs/diploma-practice/lab2/lab2.ko /home/dimitis/Yandex.Disk/labs/diploma-practice/lab2/lab2.o /home/dimitis/Yandex.Disk/labs/diploma-practice/lab2/lab2.mod.o;  true
