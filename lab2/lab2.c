@@ -1,1 +1,1 @@
-lab2.module.c
+/media/dimitis/23BF8FC855013AB2/YandexDisk/labs/diploma-practice/lab2/lab2.module.c
