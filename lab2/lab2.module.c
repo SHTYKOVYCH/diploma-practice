@@ -12,127 +12,97 @@ struct cdev dev;
 
 int numOfDescriptors;
 char* cbuff;
-int writen;
-int start_buff, end_buff;
-static struct mutex *mutex;
+unsigned int bitesAwaible;
+int head, tail;
+struct mutex* mutex;
 
-struct pipe {
-    struct pipe* next;
-
-    uid_t user_id;
-
-    char* cbuff;
-    int start_index, end_index;
-
-    int numOfOpens;
-};
-
-struct pipe* pipes = NULL;
-
-struct pipe* pipeInit(uid_t user_id) {
-    struct pipe* pipe = kmalloc(sizeof(struct pipe), GFP_USER);
-
-    if (!pipe) {
-        printk(KERN_ERR "Couldn't allocate memory\n");
-        return NULL;
+void write_to_cbuff(char* buff, unsigned int numOfBytes) {
+    unsigned i = 0;
+    while (i < numOfBytes) {
+        cbuff[tail] = buff[i];
+        tail += 1;
+        i += 1;
     }
 
-    pipe->cbuff = kmalloc(65536, GFP_USER);
-
-    if (!pipe->cbuff) {
-        printk(KERN_ERR "Couldn't allocate memory");
-        kfree(pipes);
-        return NULL;
-    }
-
-    pipe->start_index = 0;
-    pipe->end_index = 0;
-
-    pipe->numOfOpens = 1;
-
-    return pipe;
+    bitesAwaible += numOfBytes;
 }
 
-void pipeFree(uid_t user_id) {
-    struct pipe* pipeToDelete = pipes;
-
-    while (pipeToDelete->user_id != user_id) {
-        pipeToDelete = pipeToDelete->next;
+void read_from_cbuff(char* buff, unsigned int numOfBytes) {
+    unsigned i = 0;
+    while (i < numOfBytes) {
+        buff[i] = cbuff[head];
+        head += 1;
+        i += 1;
     }
+
+    bitesAwaible -= numOfBytes;
 }
 
 int device_open(struct inode* iocl, struct file* f) {
-    /*    struct pipe* pipeForUser;
-
-          if (!pipes) {
-          pipes = pipeInit(current_uid().val);
-
-          if (!pipes) {
-          return -1;
-          }
-
-          pipeForUser = pipes;
-          } else {
-          struct pipe* elem = pipes;
-
-          while (elem->user_id != current_uid().val && elem->next) {elem = elem->next;}
-
-          if (elem->user_id == current_uid().val) {
-          pipeForUser = elem->next;
-          } else if (!elem->next) {
-          elem->next = pipeInit(current_uid().val);
-
-          if (!elem->next) {
-          return -1;
-          }
-
-          pipeForUser = elem->next;
-          }
-          }
-
-          f->private_data = pipeForUser;
-          */
-
     printk(KERN_INFO "[LOG] dmitrii_pipe opened\n");
 
     return 0;
 }
 
 int device_close(struct inode* iocl, struct file* f) {
-    /*
-       struct pipe* pipe = file->private_data;
-
-       pipe->numOfOpens -= 1;
-
-       if (
-
-       kfree(elem)
-       */
     printk(KERN_INFO "[LOG] dmitrii_pipe closed\n");
+
     return 0;
 }
 
 static ssize_t device_write(struct file* f, const char __user* buff, size_t numOfBytes, loff_t* offset) {
-    copy_from_user(cbuff, buff, numOfBytes);
+    mutex_lock(mutex);
 
-    cbuff[numOfBytes] = 0;
-    writen = numOfBytes;
+    char t_buff[4096] = {0};
+    unsigned int numOfIteations = numOfBytes >> 12;
 
-    printk(KERN_INFO "[LOG] Recieved message: %s\n", cbuff);
+    unsigned int i = 0;
+    while(i < numOfIteations) {
+        copy_from_user(t_buff, buff + 4096 * i, 4096);
+        write_to_cbuff(t_buff, 4096);
+        i += 1;
+    }
 
+    if (numOfBytes & 0xfff) {
+        copy_from_user(t_buff, buff + (4096 * numOfIteations), numOfBytes & 0xfff);
+        write_to_cbuff(t_buff, numOfBytes & 0xfff);
+    }
+
+    printk(KERN_INFO "[LOG] Recieved message");
+
+    mutex_unlock(mutex);
     return numOfBytes;
 }
 
 static ssize_t device_read(struct file* f, char __user* buff, size_t numOfBytes, loff_t* offset) {
-    printk(KERN_INFO "[LOG] Sent message of %d bytes\n", numOfBytes);
+    mutex_lock(mutex);
 
-    if (writen > numOfBytes) {
-        copy_to_user(buff, cbuff, numOfBytes);
-        return numOfBytes;
+
+    char t_buff[4096] = {0};
+    int bytesToWrite = numOfBytes;
+
+    if (bitesAwaible < numOfBytes) {
+        bytesToWrite = bitesAwaible;
     }
 
-    copy_to_user(buff, cbuff, writen);
-    return writen;
+    unsigned int numOfIteations = bytesToWrite >> 12;
+
+    unsigned int i = 0;
+    while (i < numOfIteations) {
+        read_from_cbuff(t_buff, 4096);
+        copy_to_user(buff + 4096 * i, t_buff, 4096);
+        i += 1;
+    }
+
+    if (numOfBytes & 0xfff) {
+        read_from_cbuff(t_buff, numOfBytes & 0xfff);
+        copy_to_user(buff + (4096 * numOfIteations), t_buff, numOfBytes & 0xfff);
+    }
+
+    mutex_unlock(mutex);
+    printk(KERN_INFO "[LOG] Sent message of %d bytes\n", bytesToWrite);
+
+    return numOfBytes;
 }
 
 struct file_operations fops = {
@@ -171,7 +141,20 @@ static int __init lab2_init(void) {
         return -1;
     }
 
-    writen = 0;
+    bitesAwaible = 0;
+
+    mutex = kmalloc(sizeof(struct mutex), GFP_USER);
+
+    if (!mutex) {
+        printk(KERN_ERR "Couldn't allocate memory\n");
+        unregister_chrdev_region(device, 1);
+        kfree(cbuff);
+        return -1;
+    }
+
+    mutex_init(mutex);
+    head = 0;
+    tail = 0;
 
     printk(KERN_INFO "[LOG] Module loaded\n");
 
@@ -181,6 +164,7 @@ static int __init lab2_init(void) {
 static void __exit lab2_exit(void) {
     cdev_del(&dev);
     kfree(cbuff);
+    kfree(mutex);
     unregister_chrdev_region(device, 1);
     printk(KERN_INFO "[LOG] dmitrii_pipe unloaded\n");
 }
