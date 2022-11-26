@@ -1,1 +1,0 @@
-cmd_/media/dimitis/23BF8FC855013AB2/YandexDisk/labs/diploma-practice/lab2/Module.symvers := sed 's/\.ko$$/\.o/' /media/dimitis/23BF8FC855013AB2/YandexDisk/labs/diploma-practice/lab2/modules.order | scripts/mod/modpost -m -a  -o /media/dimitis/23BF8FC855013AB2/YandexDisk/labs/diploma-practice/lab2/Module.symvers -e -i Module.symvers   -T -

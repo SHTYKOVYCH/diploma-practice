@@ -1,1 +1,0 @@
-cmd_/home/dimitis/Yandex.Disk/labs/diploma-practice/lab2/lab2.module.mod := { echo  /home/dimitis/Yandex.Disk/labs/diploma-practice/lab2/lab2.module.o;  echo; } > /home/dimitis/Yandex.Disk/labs/diploma-practice/lab2/lab2.module.mod

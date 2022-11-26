@@ -1,1 +1,0 @@
-cmd_/media/dimitis/23BF8FC855013AB2/YandexDisk/labs/diploma-practice/lab2/lab2.mod := { echo  /media/dimitis/23BF8FC855013AB2/YandexDisk/labs/diploma-practice/lab2/lab2.o;  echo; } > /media/dimitis/23BF8FC855013AB2/YandexDisk/labs/diploma-practice/lab2/lab2.mod
